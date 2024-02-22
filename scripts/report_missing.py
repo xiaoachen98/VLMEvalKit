@@ -1,0 +1,51 @@
+from vlmeval.smp import *
+from vlmeval.config import supported_VLM
+
+logger = get_logger('Report Missing')
+
+ESSENTIAL = [
+    ('MME', 'score.csv'), ('SEEDBench_IMG', 'acc.csv'), ('MMBench', 'acc.csv'), 
+    ('CCBench', 'acc.csv'), ('MMBench_CN', 'acc.csv'), ('MMVet', 'gpt-4-turbo_score.csv'),
+    ('MMMU_DEV_VAL', 'acc.csv'), ('MathVista_MINI', 'gpt-4-turbo_score.csv'), ('HallusionBench', 'score.csv'),
+    ('AI2D_TEST', 'acc.csv'), ('LLaVABench', 'score.csv')
+]
+OPTIONAL = [
+    ('OCRVQA_TESTCORE', 'acc.csv'), ('TextVQA_VAL', 'acc.csv'), ('COCO_VAL', 'score.json'), 
+    ('ChartQA_VALTEST_HUMAN', 'acc.csv'), ('ScienceQA_VAL', 'acc.csv'), ('ScienceQA_TEST', 'acc.csv'),
+]
+
+models = list(supported_VLM)
+
+def completed(m, d, suf):
+    score_file = f'{m}/{m}_{d}_{suf}'
+    if osp.exists(score_file):
+        return True
+    if d == 'MMBench':
+        s1, s2 = f'{m}/{m}_MMBench_DEV_EN_{suf}', f'{m}/{m}_MMBench_TEST_EN_{suf}'
+        return osp.exists(s1) and osp.exists(s2)
+    elif d == 'MMBench_CN':
+        s1, s2 = f'{m}/{m}_MMBench_DEV_CN_{suf}', f'{m}/{m}_MMBench_TEST_CN_{suf}'
+        return osp.exists(s1) and osp.exists(s2)
+    return False
+
+for f in models:
+    if not osp.exists(f):
+        logger.info(f'{f} not evaluated. ')
+models = [x for x in models if osp.exists(x)]
+
+logger.info(colored('Essential Datasets: ', 'red'))
+
+for f in models:
+    files = ls(f, mode='file')
+    for D, suff in ESSENTIAL:
+        if not completed(f, D, suff):
+            logger.info(colored(f'Model {f} x Dataset {D} Not Found. ', 'red'))
+
+logger.info(colored('Optional Datasets: ', 'magenta'))
+
+for f in models:
+    files = ls(f, mode='file')
+    for D, suff in OPTIONAL:
+        if not completed(f, D, suff):
+            logger.info(colored(f'Model {f} x Dataset {D} Not Found. ', 'magenta'))
+        
